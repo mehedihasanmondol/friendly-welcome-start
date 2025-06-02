@@ -2,88 +2,92 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Clock, CheckCircle, XCircle, DollarSign, Timer, Edit } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Clock, Calendar, DollarSign, Plus, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { WorkingHour, Profile, Client, Project } from "@/types/database";
 import { useToast } from "@/hooks/use-toast";
-import { ProfileSelector } from "@/components/common/ProfileSelector";
-import { EditWorkingHoursDialog } from "@/components/EditWorkingHoursDialog";
+import { WorkingHour, Client, Project, Profile, WorkingHoursStatus } from "@/types/database";
+import { useAuth } from "@/hooks/useAuth";
+import { WorkingHoursActions } from "@/components/working-hours/WorkingHoursActions";
 
 export const WorkingHours = () => {
-  const [searchTerm, setSearchTerm] = useState("");
   const [workingHours, setWorkingHours] = useState<WorkingHour[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingWorkingHour, setEditingWorkingHour] = useState<WorkingHour | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [selectedRows, setSelectedRows] = useState<WorkingHour[]>([]);
   const { toast } = useToast();
+  const { user, profile } = useAuth();
+
+  const [filters, setFilters] = useState({
+    profile_id: '',
+    client_id: '',
+    project_id: '',
+    date: ''
+  });
 
   const [formData, setFormData] = useState({
-    profile_id: "",
-    client_id: "",
-    project_id: "",
-    date: new Date().toISOString().split('T')[0], // Auto-fill with today's date
-    start_time: "",
-    end_time: "",
-    sign_in_time: "",
-    sign_out_time: "",
-    hourly_rate: 0,
-    notes: "",
-    status: "pending"
+    profile_id: '',
+    client_id: '',
+    project_id: '',
+    date: '',
+    start_time: '',
+    end_time: '',
+    total_hours: '',
+    actual_hours: '',
+    overtime_hours: '',
+    hourly_rate: '',
+    payable_amount: '',
+    notes: '',
+    sign_in_time: '',
+    sign_out_time: ''
   });
 
   useEffect(() => {
-    fetchWorkingHours();
-    fetchProfiles();
-    fetchClients();
-    fetchProjects();
+    fetchData();
   }, []);
 
-  // Auto-fill today's date when dialog opens
-  useEffect(() => {
-    if (isDialogOpen && !editingWorkingHour) {
-      setFormData(prev => ({
-        ...prev,
-        date: new Date().toISOString().split('T')[0]
-      }));
-    }
-  }, [isDialogOpen, editingWorkingHour]);
-
-  const fetchWorkingHours = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
-        .from('working_hours')
-        .select(`
-          *,
-          profiles!working_hours_profile_id_fkey (id, full_name, role, hourly_rate),
-          clients!working_hours_client_id_fkey (id, company),
-          projects!working_hours_project_id_fkey (id, name)
-        `)
-        .order('created_at', { ascending: false });
+      setLoading(true);
 
-      if (error) throw error;
-      
-      const workingHoursData = (data || []).map(wh => ({
-        ...wh,
-        profiles: Array.isArray(wh.profiles) ? wh.profiles[0] : wh.profiles,
-        clients: Array.isArray(wh.clients) ? wh.clients[0] : wh.clients,
-        projects: Array.isArray(wh.projects) ? wh.projects[0] : wh.projects
-      }));
-      
-      setWorkingHours(workingHoursData as WorkingHour[]);
-    } catch (error) {
-      console.error('Error fetching working hours:', error);
+      const [workingHoursRes, clientsRes, projectsRes, profilesRes] = await Promise.all([
+        supabase
+          .from('working_hours')
+          .select(`
+            *,
+            profiles!working_hours_profile_id_fkey (id, full_name, role, hourly_rate),
+            clients!working_hours_client_id_fkey (id, name, company),
+            projects!working_hours_project_id_fkey (id, name)
+          `)
+          .order('date', { ascending: false }),
+
+        supabase.from('clients').select('*').order('name'),
+        supabase.from('projects').select('*').order('name'),
+        supabase.from('profiles').select('*').order('full_name')
+      ]);
+
+      if (workingHoursRes.error) throw workingHoursRes.error;
+      if (clientsRes.error) throw clientsRes.error;
+      if (projectsRes.error) throw projectsRes.error;
+      if (profilesRes.error) throw profilesRes.error;
+
+      setWorkingHours(workingHoursRes.data as WorkingHour[]);
+      setClients(clientsRes.data as Client[]);
+      setProjects(projectsRes.data as Project[]);
+      setProfiles(profilesRes.data as Profile[]);
+    } catch (error: any) {
+      console.error('Error fetching data:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch working hours",
+        description: "Failed to fetch working hours data",
         variant: "destructive"
       });
     } finally {
@@ -91,112 +95,60 @@ export const WorkingHours = () => {
     }
   };
 
-  const fetchProfiles = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('is_active', true)
-        .order('full_name');
-
-      if (error) throw error;
-      setProfiles(data as Profile[]);
-    } catch (error) {
-      console.error('Error fetching profiles:', error);
-    }
-  };
-
-  const fetchClients = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('status', 'active')
-        .order('company');
-
-      if (error) throw error;
-      setClients(data as Client[]);
-    } catch (error) {
-      console.error('Error fetching clients:', error);
-    }
-  };
-
-  const fetchProjects = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('status', 'active')
-        .order('name');
-
-      if (error) throw error;
-      setProjects(data as Project[]);
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-    }
-  };
-
-  const calculateTotalHours = (startTime: string, endTime: string) => {
-    if (!startTime || !endTime) return 0;
-    
-    const start = new Date(`2000-01-01T${startTime}`);
-    const end = new Date(`2000-01-01T${endTime}`);
-    const diffMs = end.getTime() - start.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
-    
-    return Math.max(0, diffHours);
-  };
-
-  const calculateActualHours = (signInTime: string, signOutTime: string) => {
-    if (!signInTime || !signOutTime) return 0;
-    return calculateTotalHours(signInTime, signOutTime);
-  };
+  const filteredWorkingHours = workingHours.filter(wh => {
+    if (filters.profile_id && wh.profile_id !== filters.profile_id) return false;
+    if (filters.client_id && wh.client_id !== filters.client_id) return false;
+    if (filters.project_id && wh.project_id !== filters.project_id) return false;
+    if (filters.date && wh.date !== filters.date) return false;
+    return true;
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const totalHours = calculateTotalHours(formData.start_time, formData.end_time);
-      const actualHours = calculateActualHours(formData.sign_in_time, formData.sign_out_time);
-      const overtimeHours = Math.max(0, actualHours - totalHours);
-      const payableAmount = (actualHours || totalHours) * formData.hourly_rate;
-      
-      const { error } = await supabase
-        .from('working_hours')
-        .insert([{
-          ...formData,
-          total_hours: totalHours,
-          actual_hours: actualHours || null,
-          overtime_hours: overtimeHours,
-          payable_amount: payableAmount,
-          sign_in_time: formData.sign_in_time || null,
-          sign_out_time: formData.sign_out_time || null
-        }]);
+      const workingHourData = {
+        profile_id: formData.profile_id,
+        client_id: formData.client_id,
+        project_id: formData.project_id,
+        date: formData.date,
+        start_time: formData.start_time,
+        end_time: formData.end_time,
+        total_hours: parseFloat(formData.total_hours),
+        actual_hours: parseFloat(formData.actual_hours),
+        overtime_hours: parseFloat(formData.overtime_hours),
+        hourly_rate: parseFloat(formData.hourly_rate),
+        payable_amount: parseFloat(formData.payable_amount),
+        notes: formData.notes,
+        sign_in_time: formData.sign_in_time,
+        sign_out_time: formData.sign_out_time,
+        status: 'pending' as WorkingHoursStatus
+      };
 
-      if (error) throw error;
-      toast({ title: "Success", description: "Working hours logged successfully" });
-      
+      if (editingWorkingHour) {
+        const { error } = await supabase
+          .from('working_hours')
+          .update(workingHourData)
+          .eq('id', editingWorkingHour.id);
+        if (error) throw error;
+        toast({ title: "Success", description: "Working hour updated successfully" });
+      } else {
+        const { error } = await supabase
+          .from('working_hours')
+          .insert([workingHourData]);
+        if (error) throw error;
+        toast({ title: "Success", description: "Working hour created successfully" });
+      }
+
       setIsDialogOpen(false);
-      setFormData({
-        profile_id: "",
-        client_id: "",
-        project_id: "",
-        date: new Date().toISOString().split('T')[0], // Reset to today's date
-        start_time: "",
-        end_time: "",
-        sign_in_time: "",
-        sign_out_time: "",
-        hourly_rate: 0,
-        notes: "",
-        status: "pending"
-      });
-      fetchWorkingHours();
-    } catch (error) {
-      console.error('Error saving working hours:', error);
+      resetForm();
+      fetchData();
+    } catch (error: any) {
+      console.error('Error saving working hour:', error);
       toast({
         title: "Error",
-        description: "Failed to save working hours",
+        description: error.message || "Failed to save working hour",
         variant: "destructive"
       });
     } finally {
@@ -204,400 +156,472 @@ export const WorkingHours = () => {
     }
   };
 
-  const updateStatus = async (id: string, status: 'approved' | 'rejected') => {
+  const handleBulkSubmit = async () => {
+    if (selectedRows.length === 0) return;
+
+    setLoading(true);
+    try {
+      const workingHoursToCreate = selectedRows.map(row => ({
+        total_hours: row.total_hours,
+        actual_hours: row.actual_hours,
+        overtime_hours: row.overtime_hours,
+        payable_amount: row.payable_amount,
+        sign_in_time: row.sign_in_time,
+        sign_out_time: row.sign_out_time,
+        profile_id: row.profile_id,
+        client_id: row.client_id,
+        project_id: row.project_id,
+        date: row.date,
+        start_time: row.start_time,
+        end_time: row.end_time,
+        hourly_rate: row.hourly_rate,
+        notes: row.notes,
+        status: 'pending' as WorkingHoursStatus
+      }));
+
+      const { error } = await supabase
+        .from('working_hours')
+        .insert(workingHoursToCreate);
+
+      if (error) throw error;
+
+      toast({ title: "Success", description: "Bulk working hours created successfully" });
+      setSelectedRows([]);
+      fetchData();
+    } catch (error: any) {
+      console.error('Error creating bulk working hours:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create bulk working hours",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      profile_id: '',
+      client_id: '',
+      project_id: '',
+      date: '',
+      start_time: '',
+      end_time: '',
+      total_hours: '',
+      actual_hours: '',
+      overtime_hours: '',
+      hourly_rate: '',
+      payable_amount: '',
+      notes: '',
+      sign_in_time: '',
+      sign_out_time: ''
+    });
+    setEditingWorkingHour(null);
+  };
+
+  const editWorkingHour = (workingHour: WorkingHour) => {
+    setFormData({
+      profile_id: workingHour.profile_id,
+      client_id: workingHour.client_id,
+      project_id: workingHour.project_id,
+      date: workingHour.date,
+      start_time: workingHour.start_time,
+      end_time: workingHour.end_time,
+      total_hours: workingHour.total_hours.toString(),
+      actual_hours: workingHour.actual_hours?.toString() || '',
+      overtime_hours: workingHour.overtime_hours?.toString() || '',
+      hourly_rate: workingHour.hourly_rate?.toString() || '',
+      payable_amount: workingHour.payable_amount?.toString() || '',
+      notes: workingHour.notes || '',
+      sign_in_time: workingHour.sign_in_time || '',
+      sign_out_time: workingHour.sign_out_time || ''
+    });
+    setEditingWorkingHour(workingHour);
+    setIsDialogOpen(true);
+  };
+
+  const deleteWorkingHour = async (id: string) => {
     try {
       const { error } = await supabase
         .from('working_hours')
-        .update({ status })
+        .delete()
         .eq('id', id);
 
       if (error) throw error;
-      toast({ 
-        title: "Success", 
-        description: `Working hours ${status} successfully` 
-      });
-      fetchWorkingHours();
-    } catch (error) {
-      console.error('Error updating status:', error);
+      toast({ title: "Success", description: "Working hour deleted successfully" });
+      fetchData();
+    } catch (error: any) {
+      console.error('Error deleting working hour:', error);
       toast({
         title: "Error",
-        description: "Failed to update status",
+        description: error.message || "Failed to delete working hour",
         variant: "destructive"
       });
     }
   };
 
-  const handleEdit = (workingHour: WorkingHour) => {
-    setEditingWorkingHour(workingHour);
-    setIsEditDialogOpen(true);
+  const toggleRowSelection = (workingHour: WorkingHour) => {
+    setSelectedRows(prevRows => {
+      const isSelected = prevRows.find(row => row.id === workingHour.id);
+      if (isSelected) {
+        return prevRows.filter(row => row.id !== workingHour.id);
+      } else {
+        return [...prevRows, workingHour];
+      }
+    });
   };
 
-  const filteredWorkingHours = workingHours.filter(wh =>
-    (wh.profiles?.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (wh.projects?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const isRowSelected = (workingHour: WorkingHour) => {
+    return selectedRows.find(row => row.id === workingHour.id);
+  };
 
-  if (loading && workingHours.length === 0) {
-    return <div className="flex justify-center items-center h-64">Loading...</div>;
+  if (loading) {
+    return <div className="flex justify-center items-center h-64">Loading working hours...</div>;
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Clock className="h-8 w-8 text-blue-600" />
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Enhanced Working Hours</h1>
-            <p className="text-gray-600">Track actual hours, overtime, and payroll calculations</p>
-          </div>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Log Hours
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Log Enhanced Working Hours</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <ProfileSelector
-                profiles={profiles}
-                selectedProfileId={formData.profile_id}
-                onProfileSelect={(profileId) => {
-                  const profile = profiles.find(p => p.id === profileId);
-                  setFormData({ 
-                    ...formData, 
-                    profile_id: profileId,
-                    hourly_rate: profile?.hourly_rate || 0 // Auto-suggest hourly rate
-                  });
-                }}
-                label="Select Profile"
-                placeholder="Choose a team member"
-                showRoleFilter={true}
-              />
-              
-              <div>
-                <Label htmlFor="client_id">Client</Label>
-                <Select value={formData.client_id} onValueChange={(value) => setFormData({ ...formData, client_id: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.company}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="project_id">Project</Label>
-                <Select value={formData.project_id} onValueChange={(value) => setFormData({ ...formData, project_id: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects.filter(p => !formData.client_id || p.client_id === formData.client_id).map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="space-y-4">
-                <div className="border-t pt-4">
-                  <h4 className="font-medium text-gray-900 mb-2">Scheduled Hours</h4>
-                  <div className="grid grid-cols-2 gap-4">
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle>Manage Working Hours</CardTitle>
+          <div className="flex items-center space-x-2">
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) resetForm();
+            }}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Working Hour
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingWorkingHour ? "Edit Working Hour" : "Create Working Hour"}
+                  </DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="start_time">Start Time</Label>
+                      <Label htmlFor="profile_id">Employee *</Label>
+                      <Select value={formData.profile_id} onValueChange={(value) => setFormData({ ...formData, profile_id: value })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select employee" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {profiles.map((profile) => (
+                            <SelectItem key={profile.id} value={profile.id}>
+                              {profile.full_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="client_id">Client *</Label>
+                      <Select value={formData.client_id} onValueChange={(value) => setFormData({ ...formData, client_id: value })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select client" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {clients.map((client) => (
+                            <SelectItem key={client.id} value={client.id}>
+                              {client.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="project_id">Project *</Label>
+                      <Select value={formData.project_id} onValueChange={(value) => setFormData({ ...formData, project_id: value })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select project" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {projects.map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="date">Date *</Label>
                       <Input
-                        id="start_time"
+                        type="date"
+                        id="date"
+                        value={formData.date}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="start_time">Start Time *</Label>
+                      <Input
                         type="time"
+                        id="start_time"
                         value={formData.start_time}
                         onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                        required
                       />
                     </div>
+
                     <div>
-                      <Label htmlFor="end_time">End Time</Label>
+                      <Label htmlFor="end_time">End Time *</Label>
                       <Input
-                        id="end_time"
                         type="time"
+                        id="end_time"
                         value={formData.end_time}
                         onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                        required
                       />
                     </div>
-                  </div>
-                </div>
 
-                <div className="border-t pt-4">
-                  <h4 className="font-medium text-gray-900 mb-2">Actual Hours (Optional)</h4>
-                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="total_hours">Total Hours *</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        id="total_hours"
+                        value={formData.total_hours}
+                        onChange={(e) => setFormData({ ...formData, total_hours: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="actual_hours">Actual Hours</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        id="actual_hours"
+                        value={formData.actual_hours}
+                        onChange={(e) => setFormData({ ...formData, actual_hours: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="overtime_hours">Overtime Hours</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        id="overtime_hours"
+                        value={formData.overtime_hours}
+                        onChange={(e) => setFormData({ ...formData, overtime_hours: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="hourly_rate">Hourly Rate</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        id="hourly_rate"
+                        value={formData.hourly_rate}
+                        onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="payable_amount">Payable Amount</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        id="payable_amount"
+                        value={formData.payable_amount}
+                        onChange={(e) => setFormData({ ...formData, payable_amount: e.target.value })}
+                      />
+                    </div>
+
                     <div>
                       <Label htmlFor="sign_in_time">Sign In Time</Label>
                       <Input
-                        id="sign_in_time"
                         type="time"
+                        id="sign_in_time"
                         value={formData.sign_in_time}
                         onChange={(e) => setFormData({ ...formData, sign_in_time: e.target.value })}
-                        placeholder="Optional"
                       />
                     </div>
+
                     <div>
                       <Label htmlFor="sign_out_time">Sign Out Time</Label>
                       <Input
-                        id="sign_out_time"
                         type="time"
+                        id="sign_out_time"
                         value={formData.sign_out_time}
                         onChange={(e) => setFormData({ ...formData, sign_out_time: e.target.value })}
-                        placeholder="Optional"
                       />
                     </div>
                   </div>
-                </div>
 
-                <div>
-                  <Label htmlFor="hourly_rate">Hourly Rate ($)</Label>
-                  <Input
-                    id="hourly_rate"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.hourly_rate}
-                    onChange={(e) => setFormData({ ...formData, hourly_rate: parseFloat(e.target.value) || 0 })}
-                    required
-                  />
-                </div>
+                  <div>
+                    <Label htmlFor="notes">Notes</Label>
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="Additional notes"
+                      rows={3}
+                    />
+                  </div>
 
-                <div>
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Additional notes about this work session..."
-                  />
-                </div>
-              </div>
+                  <Button type="submit" disabled={loading} className="w-full">
+                    {loading ? "Saving..." : editingWorkingHour ? "Update Working Hour" : "Create Working Hour"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
 
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "Saving..." : "Log Hours"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Enhanced Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Entries</CardTitle>
-            <Clock className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{filteredWorkingHours.length}</div>
-            <p className="text-xs text-muted-foreground">All logged hours</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Hours</CardTitle>
-            <Timer className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {filteredWorkingHours.reduce((sum, wh) => sum + (wh.actual_hours || wh.total_hours), 0).toFixed(1)}
-            </div>
-            <p className="text-xs text-muted-foreground">Actual hours worked</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Overtime Hours</CardTitle>
-            <Timer className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {filteredWorkingHours.reduce((sum, wh) => sum + (wh.overtime_hours || 0), 0).toFixed(1)}
-            </div>
-            <p className="text-xs text-muted-foreground">Extra hours worked</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Payable</CardTitle>
-            <DollarSign className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              ${filteredWorkingHours.reduce((sum, wh) => sum + (wh.payable_amount || 0), 0).toFixed(2)}
-            </div>
-            <p className="text-xs text-muted-foreground">Total amount due</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Enhanced Working Hours Log ({filteredWorkingHours.length})</CardTitle>
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search by name or project..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            <Button onClick={handleBulkSubmit} disabled={selectedRows.length === 0 || loading}>
+              Submit Selected ({selectedRows.length})
+            </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Profile</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Project</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Date</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Scheduled</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Actual</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Overtime</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Payable</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredWorkingHours.map((wh) => (
-                  <tr key={wh.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div>
-                        <div className="font-medium text-gray-900">{wh.profiles?.full_name || 'N/A'}</div>
-                        <div className="text-sm text-gray-600">{wh.profiles?.role || 'N/A'}</div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div>
-                        <div className="font-medium text-gray-900">{wh.projects?.name || 'N/A'}</div>
-                        <div className="text-sm text-gray-600">{wh.clients?.company || 'N/A'}</div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-gray-600">
-                      {new Date(wh.date).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-4 text-gray-600">
-                      <div className="text-sm">
-                        {wh.start_time} - {wh.end_time}
-                        <div className="text-xs text-gray-500">{wh.total_hours}h</div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-gray-600">
-                      <div className="text-sm">
-                        {wh.sign_in_time && wh.sign_out_time ? (
-                          <>
-                            {wh.sign_in_time} - {wh.sign_out_time}
-                            <div className="text-xs text-gray-500">{wh.actual_hours || 0}h</div>
-                          </>
-                        ) : (
-                          <span className="text-gray-400">Not recorded</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className={`text-sm font-medium ${(wh.overtime_hours || 0) > 0 ? 'text-orange-600' : 'text-gray-600'}`}>
-                        {(wh.overtime_hours || 0).toFixed(1)}h
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-sm font-medium text-purple-600">
-                        ${(wh.payable_amount || 0).toFixed(2)}
-                        <div className="text-xs text-gray-500">${wh.hourly_rate || 0}/hr</div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge variant={
-                        wh.status === "approved" ? "default" : 
-                        wh.status === "pending" ? "secondary" : "outline"
-                      }>
-                        {wh.status}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleEdit(wh)}
-                          className="text-blue-600 hover:text-blue-700"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        {wh.status === "pending" && (
-                          <>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => updateStatus(wh.id, "approved")}
-                              className="text-green-600 hover:text-green-700"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => updateStatus(wh.id, "rejected")}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {/* Filter Section */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <div>
+            <Label htmlFor="profile_filter">Employee</Label>
+            <Select value={filters.profile_id} onValueChange={(value) => setFilters({ ...filters, profile_id: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by employee" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Employees</SelectItem>
+                {profiles.map((profile) => (
+                  <SelectItem key={profile.id} value={profile.id}>
+                    {profile.full_name}
+                  </SelectItem>
                 ))}
-              </tbody>
-            </table>
+              </SelectContent>
+            </Select>
           </div>
-        </CardContent>
-      </Card>
 
-      <EditWorkingHoursDialog
-        workingHour={editingWorkingHour}
-        isOpen={isEditDialogOpen}
-        onClose={() => {
-          setIsEditDialogOpen(false);
-          setEditingWorkingHour(null);
-        }}
-        onUpdate={fetchWorkingHours}
-        profiles={profiles}
-        clients={clients}
-        projects={projects}
-      />
-    </div>
+          <div>
+            <Label htmlFor="client_filter">Client</Label>
+            <Select value={filters.client_id} onValueChange={(value) => setFilters({ ...filters, client_id: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by client" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Clients</SelectItem>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="project_filter">Project</Label>
+            <Select value={filters.project_id} onValueChange={(value) => setFilters({ ...filters, project_id: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by project" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Projects</SelectItem>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="date_filter">Date</Label>
+            <Input
+              type="date"
+              id="date_filter"
+              value={filters.date}
+              onChange={(e) => setFilters({ ...filters, date: e.target.value })}
+            />
+          </div>
+        </div>
+
+        {/* Working Hours Table */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr>
+                <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                  <input
+                    type="checkbox"
+                    className="rounded text-blue-500 focus:ring-blue-500"
+                    onChange={() => {
+                      if (selectedRows.length === filteredWorkingHours.length) {
+                        setSelectedRows([]);
+                      } else {
+                        setSelectedRows([...filteredWorkingHours]);
+                      }
+                    }}
+                    checked={selectedRows.length === filteredWorkingHours.length && filteredWorkingHours.length > 0}
+                    disabled={filteredWorkingHours.length === 0}
+                  />
+                </th>
+                <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                  Employee
+                </th>
+                <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                  Client
+                </th>
+                <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                  Project
+                </th>
+                <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                  Hours
+                </th>
+                <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredWorkingHours.map((workingHour) => (
+                <tr key={workingHour.id}>
+                  <td className="px-6 py-4 whitespace-no-wrap">
+                    <input
+                      type="checkbox"
+                      className="rounded text-blue-500 focus:ring-blue-500"
+                      checked={isRowSelected(workingHour)}
+                      onChange={() => toggleRowSelection(workingHour)}
+                    />
+                  </td>
+                  <td className="px-6 py-4 whitespace-no-wrap">
+                    <div className="text-sm leading-5 text-gray-900">{workingHour.profiles?.full_name}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-no-wrap">
+                    <div className="text-sm leading-5 text-gray-900">{workingHour.clients?.name}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-no-wrap">
+                    <div className="text-sm leading-5 text-gray-900">{workingHour.projects?.name}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-no-wrap">
+                    <div className="text-sm leading-5 text-gray-900">{workingHour.date}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-no-wrap">
+                    <div className="text-sm leading-5 text-gray-900">{workingHour.total_hours}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-no-wrap text-right text-sm leading-5 font-medium">
+                    <WorkingHoursActions workingHour={workingHour} onEdit={editWorkingHour} onDelete={deleteWorkingHour} onRefresh={fetchData} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
