@@ -810,7 +810,7 @@ export type Database = {
           sign_in_time: string | null
           sign_out_time: string | null
           start_time: string
-          status: Database["public"]["Enums"]["working_hours_status"]
+          status: string
           total_hours: number
           updated_at: string
         }
@@ -831,7 +831,7 @@ export type Database = {
           sign_in_time?: string | null
           sign_out_time?: string | null
           start_time: string
-          status?: Database["public"]["Enums"]["working_hours_status"]
+          status?: string
           total_hours: number
           updated_at?: string
         }
@@ -852,7 +852,7 @@ export type Database = {
           sign_in_time?: string | null
           sign_out_time?: string | null
           start_time?: string
-          status?: Database["public"]["Enums"]["working_hours_status"]
+          status?: string
           total_hours?: number
           updated_at?: string
         }
@@ -958,7 +958,6 @@ export type Database = {
         | "accountant"
         | "operation"
         | "sales_manager"
-      working_hours_status: "pending" | "approved" | "rejected" | "paid"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1117,7 +1116,6 @@ export const Constants = {
         "operation",
         "sales_manager",
       ],
-      working_hours_status: ["pending", "approved", "rejected", "paid"],
     },
   },
 } as const
