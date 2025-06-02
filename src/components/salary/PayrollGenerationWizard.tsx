@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator, DollarSign, AlertTriangle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Profile, WorkingHour, BankAccount, Payroll } from "@/types/database";
+import { Profile, WorkingHour, BankAccount, Payroll, WorkingHoursStatus } from "@/types/database";
 import { useToast } from "@/hooks/use-toast";
 import { EnhancedProfileSelector } from "./EnhancedProfileSelector";
 
@@ -22,7 +22,7 @@ export const PayrollGenerationWizard = ({ profiles, workingHours, onRefresh }: P
     start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0]
   });
-  const [statusFilter, setStatusFilter] = useState<string>('approved');
+  const [statusFilter, setStatusFilter] = useState<WorkingHoursStatus>('approved');
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [selectedBankAccount, setSelectedBankAccount] = useState("");
   const [loading, setLoading] = useState(false);
@@ -84,7 +84,7 @@ export const PayrollGenerationWizard = ({ profiles, workingHours, onRefresh }: P
       // Type assertion to handle the nested profile data structure
       const typedWorkingHours = (workingHoursData || []).map(wh => ({
         ...wh,
-        status: wh.status as 'pending' | 'approved' | 'rejected'
+        status: wh.status as WorkingHoursStatus
       })) as WorkingHour[];
 
       setFilteredWorkingHours(typedWorkingHours);
@@ -166,14 +166,7 @@ export const PayrollGenerationWizard = ({ profiles, workingHours, onRefresh }: P
         .select('*');
 
       if (error) throw error;
-      
-      // Type assertion to handle the status field
-      const typedPayrolls = (data || []).map(payroll => ({
-        ...payroll,
-        status: payroll.status as 'pending' | 'approved' | 'paid'
-      })) as Payroll[];
-      
-      setExistingPayrolls(typedPayrolls);
+      setExistingPayrolls(data as Payroll[]);
     } catch (error) {
       console.error('Error fetching existing payrolls:', error);
     }
@@ -286,7 +279,7 @@ export const PayrollGenerationWizard = ({ profiles, workingHours, onRefresh }: P
           gross_pay: preview.grossPay,
           deductions: preview.deductions,
           net_pay: preview.netPay,
-          status: 'pending',
+          status: 'pending' as const,
           bank_account_id: selectedBankAccount || null
         };
 
@@ -400,7 +393,7 @@ export const PayrollGenerationWizard = ({ profiles, workingHours, onRefresh }: P
 
                     <div>
                       <Label>Working Hours Status</Label>
-                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <Select value={statusFilter} onValueChange={(value: WorkingHoursStatus) => setStatusFilter(value)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>

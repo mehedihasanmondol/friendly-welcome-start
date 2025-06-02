@@ -51,7 +51,7 @@ export interface WorkingHour {
   start_time: string;
   end_time: string;
   total_hours: number;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'paid';
   roster_id?: string;
   created_at: string;
   updated_at: string;
@@ -231,3 +231,18 @@ export interface NotificationPermission {
   can_create_bulk_notifications: boolean;
   created_at: string;
 }
+
+// Enum type definitions for better type safety
+export type PayrollStatus = 'pending' | 'approved' | 'paid';
+export type BulkPayrollStatus = 'draft' | 'processing' | 'completed' | 'failed';
+export type BulkPayrollItemStatus = 'pending' | 'processed' | 'failed';
+export type ClientStatus = 'active' | 'inactive';
+export type ProjectStatus = 'active' | 'completed' | 'on-hold';
+export type RosterStatus = 'pending' | 'confirmed' | 'cancelled';
+export type WorkingHoursStatus = 'pending' | 'approved' | 'rejected' | 'paid';
+export type NotificationActionType = 'approve' | 'confirm' | 'grant' | 'cancel' | 'reject' | 'none';
+export type NotificationPriority = 'low' | 'medium' | 'high';
+export type BankTransactionType = 'deposit' | 'withdrawal';
+export type TransactionCategory = 'income' | 'expense' | 'transfer' | 'salary' | 'equipment' | 'materials' | 'travel' | 'office' | 'utilities' | 'marketing' | 'other';
+export type UserRole = 'admin' | 'employee' | 'accountant' | 'operation' | 'sales_manager';
+export type EmploymentType = 'full-time' | 'part-time' | 'casual';
