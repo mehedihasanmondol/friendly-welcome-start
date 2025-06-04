@@ -358,107 +358,49 @@ This is an automatically generated payslip.
             </Card>
           )}
 
-          {/* Working Hours Breakdown - Enhanced for better printing */}
+          {/* Working Hours Breakdown */}
           {workingHours.length > 0 && (
             <Card className="print:shadow-none print:border">
               <CardHeader className="print:pb-2">
                 <CardTitle className="flex items-center gap-2 text-lg print:text-base">
                   <Clock className="h-5 w-5" />
-                  Detailed Working Hours Breakdown ({workingHours.length} entries)
+                  Working Hours Breakdown ({workingHours.length} entries)
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {/* Summary Stats */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded print:bg-gray-100">
-                    <div className="text-center">
-                      <div className="text-sm text-gray-600">Total Days</div>
-                      <div className="text-lg font-bold">{workingHours.length}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm text-gray-600">Total Hours</div>
-                      <div className="text-lg font-bold">{workingHours.reduce((sum, wh) => sum + wh.total_hours, 0).toFixed(1)}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm text-gray-600">Avg Daily Hours</div>
-                      <div className="text-lg font-bold">
-                        {workingHours.length > 0 ? (workingHours.reduce((sum, wh) => sum + wh.total_hours, 0) / workingHours.length).toFixed(1) : '0'}
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm text-gray-600">Total Earnings</div>
-                      <div className="text-lg font-bold text-green-600">
-                        ${workingHours.reduce((sum, wh) => sum + (wh.total_hours * (wh.hourly_rate || 0)), 0).toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Detailed Table */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm border-collapse border border-gray-300">
-                      <thead>
-                        <tr className="bg-gray-100">
-                          <th className="border border-gray-300 py-2 px-3 text-left font-medium text-gray-600">Date</th>
-                          <th className="border border-gray-300 py-2 px-3 text-left font-medium text-gray-600">Client</th>
-                          <th className="border border-gray-300 py-2 px-3 text-left font-medium text-gray-600">Project</th>
-                          <th className="border border-gray-300 py-2 px-3 text-center font-medium text-gray-600">Start</th>
-                          <th className="border border-gray-300 py-2 px-3 text-center font-medium text-gray-600">End</th>
-                          <th className="border border-gray-300 py-2 px-3 text-right font-medium text-gray-600">Hours</th>
-                          <th className="border border-gray-300 py-2 px-3 text-right font-medium text-gray-600">Rate</th>
-                          <th className="border border-gray-300 py-2 px-3 text-right font-medium text-gray-600">Amount</th>
-                          <th className="border border-gray-300 py-2 px-3 text-left font-medium text-gray-600">Notes</th>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-2 px-2 font-medium text-gray-600">Date</th>
+                        <th className="text-left py-2 px-2 font-medium text-gray-600">Client</th>
+                        <th className="text-left py-2 px-2 font-medium text-gray-600">Project</th>
+                        <th className="text-right py-2 px-2 font-medium text-gray-600">Hours</th>
+                        <th className="text-right py-2 px-2 font-medium text-gray-600">Rate</th>
+                        <th className="text-right py-2 px-2 font-medium text-gray-600">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {workingHours.map((wh) => (
+                        <tr key={wh.id} className="border-b border-gray-100">
+                          <td className="py-2 px-2">{new Date(wh.date).toLocaleDateString()}</td>
+                          <td className="py-2 px-2">{wh.clients?.company || 'N/A'}</td>
+                          <td className="py-2 px-2">{wh.projects?.name || 'N/A'}</td>
+                          <td className="py-2 px-2 text-right">{wh.total_hours}h</td>
+                          <td className="py-2 px-2 text-right">${(wh.hourly_rate || 0).toFixed(2)}</td>
+                          <td className="py-2 px-2 text-right font-medium">${(wh.total_hours * (wh.hourly_rate || 0)).toFixed(2)}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {workingHours.map((wh, index) => (
-                          <tr key={wh.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="border border-gray-300 py-2 px-3 text-sm">
-                              {new Date(wh.date).toLocaleDateString()}
-                            </td>
-                            <td className="border border-gray-300 py-2 px-3 text-sm">
-                              {wh.clients?.company || 'N/A'}
-                            </td>
-                            <td className="border border-gray-300 py-2 px-3 text-sm">
-                              {wh.projects?.name || 'N/A'}
-                            </td>
-                            <td className="border border-gray-300 py-2 px-3 text-center text-sm">
-                              {wh.start_time}
-                            </td>
-                            <td className="border border-gray-300 py-2 px-3 text-center text-sm">
-                              {wh.end_time}
-                            </td>
-                            <td className="border border-gray-300 py-2 px-3 text-right text-sm font-medium">
-                              {wh.total_hours.toFixed(1)}h
-                            </td>
-                            <td className="border border-gray-300 py-2 px-3 text-right text-sm">
-                              ${(wh.hourly_rate || 0).toFixed(2)}
-                            </td>
-                            <td className="border border-gray-300 py-2 px-3 text-right text-sm font-medium">
-                              ${(wh.total_hours * (wh.hourly_rate || 0)).toFixed(2)}
-                            </td>
-                            <td className="border border-gray-300 py-2 px-3 text-sm">
-                              {wh.notes || '-'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="bg-gray-200 font-bold">
-                          <td colSpan={5} className="border border-gray-300 py-2 px-3 text-right text-sm">
-                            TOTALS:
-                          </td>
-                          <td className="border border-gray-300 py-2 px-3 text-right text-sm">
-                            {workingHours.reduce((sum, wh) => sum + wh.total_hours, 0).toFixed(1)}h
-                          </td>
-                          <td className="border border-gray-300 py-2 px-3 text-center text-sm">-</td>
-                          <td className="border border-gray-300 py-2 px-3 text-right text-sm font-bold">
-                            ${workingHours.reduce((sum, wh) => sum + (wh.total_hours * (wh.hourly_rate || 0)), 0).toFixed(2)}
-                          </td>
-                          <td className="border border-gray-300 py-2 px-3 text-center text-sm">-</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-gray-300 font-bold">
+                        <td colSpan={3} className="py-2 px-2 text-right">TOTALS:</td>
+                        <td className="py-2 px-2 text-right">{workingHours.reduce((sum, wh) => sum + wh.total_hours, 0)}h</td>
+                        <td className="py-2 px-2 text-right">-</td>
+                        <td className="py-2 px-2 text-right">${workingHours.reduce((sum, wh) => sum + (wh.total_hours * (wh.hourly_rate || 0)), 0).toFixed(2)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
                 </div>
               </CardContent>
             </Card>
@@ -491,9 +433,6 @@ This is an automatically generated payslip.
               <div className="mt-4 text-center text-xs text-gray-500">
                 <p>This is a computer-generated payslip. Please verify all details and contact HR for any discrepancies.</p>
                 <p className="mt-1">Employee copy - retain for your records</p>
-                {workingHours.length > 0 && (
-                  <p className="mt-1">Detailed working hours breakdown included for verification purposes</p>
-                )}
               </div>
             </CardContent>
           </Card>
@@ -527,29 +466,8 @@ This is an automatically generated payslip.
             .space-y-6 > * + * { margin-top: 1rem !important; }
             .space-y-4 > * + * { margin-top: 0.75rem !important; }
             
-            .bg-blue-50, .bg-green-50, .bg-purple-50, .bg-orange-50, .bg-gray-50 {
+            .bg-blue-50, .bg-green-50, .bg-purple-50, .bg-orange-50 {
               background-color: #f9f9f9 !important;
-            }
-            
-            .bg-gray-100 {
-              background-color: #f3f4f6 !important;
-            }
-            
-            table {
-              page-break-inside: auto;
-            }
-            
-            tr {
-              page-break-inside: avoid;
-              page-break-after: auto;
-            }
-            
-            thead {
-              display: table-header-group;
-            }
-            
-            tfoot {
-              display: table-footer-group;
             }
           }
         `}</style>
