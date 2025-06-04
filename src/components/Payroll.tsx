@@ -13,6 +13,8 @@ import type { Payroll as PayrollType, Profile, WorkingHour, BankAccount } from "
 import { useToast } from "@/hooks/use-toast";
 import { ProfileSelector } from "@/components/common/ProfileSelector";
 import { PayrollDetailsDialog } from "@/components/salary/PayrollDetailsDialog";
+import { BankSelectionDialog } from "@/components/payroll/BankSelectionDialog";
+import { PayrollListWithFilters } from "@/components/payroll/PayrollListWithFilters";
 
 export const PayrollComponent = () => {
   const [payrolls, setPayrolls] = useState<PayrollType[]>([]);
@@ -26,6 +28,8 @@ export const PayrollComponent = () => {
   const [selectedPayrollForView, setSelectedPayrollForView] = useState<PayrollType | null>(null);
   const [showPayrollDetails, setShowPayrollDetails] = useState(false);
   const [selectedBankAccount, setSelectedBankAccount] = useState<string>("");
+  const [showBankSelectionDialog, setShowBankSelectionDialog] = useState(false);
+  const [selectedPayrollForPayment, setSelectedPayrollForPayment] = useState<PayrollType | null>(null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -105,7 +109,6 @@ export const PayrollComponent = () => {
       if (error) throw error;
       setBankAccounts(data || []);
       
-      // Set default bank account if available
       if (data && data.length > 0) {
         const primary = data.find(acc => acc.is_primary);
         setSelectedBankAccount(primary?.id || data[0].id);
@@ -131,7 +134,6 @@ export const PayrollComponent = () => {
       if (error) throw error;
       setWorkingHours(data as WorkingHour[]);
       
-      // Get profiles that have approved working hours
       const profileIds = [...new Set(data.map(wh => wh.profile_id))];
       const profilesWithApprovedHours = profiles.filter(p => profileIds.includes(p.id));
       setProfilesWithHours(profilesWithApprovedHours);
@@ -140,7 +142,6 @@ export const PayrollComponent = () => {
     }
   };
 
-  // Update profiles with hours when profiles change
   useEffect(() => {
     if (profiles.length > 0 && workingHours.length > 0) {
       const profileIds = [...new Set(workingHours.map(wh => wh.profile_id))];
@@ -148,6 +149,131 @@ export const PayrollComponent = () => {
       setProfilesWithHours(profilesWithApprovedHours);
     }
   }, [profiles, workingHours]);
+
+  const handleMarkAsPaid = (payroll: PayrollType) => {
+    setSelectedPayrollForPayment(payroll);
+    setShowBankSelectionDialog(true);
+  };
+
+  const handleConfirmPayment = async (bankAccountId: string) => {
+    if (!selectedPayrollForPayment) return;
+
+    setLoading(true);
+    try {
+      const payroll = selectedPayrollForPayment;
+
+      // Get bank account details
+      const { data: bankAccount, error: bankError } = await supabase
+        .from('bank_accounts')
+        .select('opening_balance')
+        .eq('id', bankAccountId)
+        .single();
+
+      if (bankError) throw bankError;
+
+      // Get current balance by calculating all transactions
+      const { data: transactions, error: transError } = await supabase
+        .from('bank_transactions')
+        .select('amount, type')
+        .eq('bank_account_id', bankAccountId);
+
+      if (transError) throw transError;
+
+      const currentBalance = bankAccount.opening_balance + 
+        transactions.reduce((sum, t) => sum + (t.type === 'deposit' ? t.amount : -t.amount), 0);
+
+      if (currentBalance < payroll.net_pay) {
+        toast({
+          title: "Insufficient Balance",
+          description: "Bank account does not have sufficient balance for this payment",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Create withdrawal transaction
+      const { error: transactionError } = await supabase
+        .from('bank_transactions')
+        .insert({
+          description: `Salary payment for ${payroll.profiles?.full_name} (${payroll.pay_period_start} - ${payroll.pay_period_end})`,
+          amount: payroll.net_pay,
+          type: 'withdrawal',
+          category: 'salary',
+          date: new Date().toISOString().split('T')[0],
+          profile_id: payroll.profile_id,
+          bank_account_id: bankAccountId
+        });
+
+      if (transactionError) throw transactionError;
+
+      // Update payroll status and bank account
+      const { error } = await supabase
+        .from('payroll')
+        .update({ 
+          status: 'paid',
+          bank_account_id: bankAccountId 
+        })
+        .eq('id', payroll.id);
+
+      if (error) throw error;
+
+      // Send notification for payment
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          title: 'Salary Payment Processed',
+          message: `Your salary for period ${payroll.pay_period_start} to ${payroll.pay_period_end} has been paid. Amount: $${payroll.net_pay.toFixed(2)}`,
+          type: 'salary_paid',
+          recipient_profile_id: payroll.profile_id,
+          related_id: payroll.id,
+          action_type: 'none',
+          priority: 'high'
+        });
+
+      if (notificationError) console.error('Failed to send notification:', notificationError);
+
+      toast({ 
+        title: "Success", 
+        description: "Payment processed successfully" 
+      });
+      
+      setShowBankSelectionDialog(false);
+      setSelectedPayrollForPayment(null);
+      fetchPayrolls();
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process payment",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updatePayrollStatus = async (id: string, status: 'approved') => {
+    try {
+      const { error } = await supabase
+        .from('payroll')
+        .update({ status })
+        .eq('id', id);
+
+      if (error) throw error;
+      toast({ 
+        title: "Success", 
+        description: `Payroll ${status} successfully` 
+      });
+      fetchPayrolls();
+    } catch (error) {
+      console.error('Error updating payroll status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update payroll status",
+        variant: "destructive"
+      });
+    }
+  };
 
   const calculatePayroll = (hours: number, rate: number, deductions: number) => {
     const gross = hours * rate;
@@ -199,109 +325,6 @@ export const PayrollComponent = () => {
     }
   };
 
-  const updatePayrollStatus = async (id: string, status: 'approved' | 'paid') => {
-    try {
-      const payroll = payrolls.find(p => p.id === id);
-      if (!payroll) throw new Error('Payroll not found');
-
-      // If changing to paid status, check bank account and create withdrawal
-      if (status === 'paid' && payroll.status !== 'paid') {
-        if (!selectedBankAccount) {
-          toast({
-            title: "Bank Account Required",
-            description: "Please select a bank account for the payment",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        // Get bank account details
-        const { data: bankAccount, error: bankError } = await supabase
-          .from('bank_accounts')
-          .select('opening_balance')
-          .eq('id', selectedBankAccount)
-          .single();
-
-        if (bankError) throw bankError;
-
-        // Get current balance by calculating all transactions
-        const { data: transactions, error: transError } = await supabase
-          .from('bank_transactions')
-          .select('amount, type')
-          .eq('bank_account_id', selectedBankAccount);
-
-        if (transError) throw transError;
-
-        const currentBalance = bankAccount.opening_balance + 
-          transactions.reduce((sum, t) => sum + (t.type === 'deposit' ? t.amount : -t.amount), 0);
-
-        if (currentBalance < payroll.net_pay) {
-          toast({
-            title: "Insufficient Balance",
-            description: "Bank account does not have sufficient balance for this payment",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        // Create withdrawal transaction
-        const { error: transactionError } = await supabase
-          .from('bank_transactions')
-          .insert({
-            description: `Salary payment for ${payroll.profiles?.full_name} (${payroll.pay_period_start} - ${payroll.pay_period_end})`,
-            amount: payroll.net_pay,
-            type: 'withdrawal',
-            category: 'salary',
-            date: new Date().toISOString().split('T')[0],
-            profile_id: payroll.profile_id,
-            bank_account_id: selectedBankAccount
-          });
-
-        if (transactionError) throw transactionError;
-
-        // Update payroll with bank account
-        await supabase
-          .from('payroll')
-          .update({ bank_account_id: selectedBankAccount })
-          .eq('id', id);
-
-        // Send notification for payment
-        const { error: notificationError } = await supabase
-          .from('notifications')
-          .insert({
-            title: 'Salary Payment Processed',
-            message: `Your salary for period ${payroll.pay_period_start} to ${payroll.pay_period_end} has been paid. Amount: $${payroll.net_pay.toFixed(2)}`,
-            type: 'salary_paid',
-            recipient_profile_id: payroll.profile_id,
-            related_id: payroll.id,
-            action_type: 'none',
-            priority: 'high'
-          });
-
-        if (notificationError) console.error('Failed to send notification:', notificationError);
-      }
-
-      const { error } = await supabase
-        .from('payroll')
-        .update({ status })
-        .eq('id', id);
-
-      if (error) throw error;
-      toast({ 
-        title: "Success", 
-        description: `Payroll ${status} successfully` 
-      });
-      fetchPayrolls();
-    } catch (error) {
-      console.error('Error updating payroll status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update payroll status",
-        variant: "destructive"
-      });
-    }
-  };
-
   const generatePayrollForProfile = async (profileId: string) => {
     try {
       const now = new Date();
@@ -343,7 +366,6 @@ export const PayrollComponent = () => {
     }
   };
 
-  // Update preview when form data changes
   useEffect(() => {
     if (formData.profile_id && formData.pay_period_start && formData.pay_period_end) {
       const profileWorkingHours = workingHours.filter(wh => 
@@ -387,20 +409,6 @@ export const PayrollComponent = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {bankAccounts.length > 0 && (
-            <Select value={selectedBankAccount} onValueChange={setSelectedBankAccount}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Select bank account for payments" />
-              </SelectTrigger>
-              <SelectContent>
-                {bankAccounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    {account.bank_name} - {account.account_number}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
@@ -545,6 +553,7 @@ export const PayrollComponent = () => {
         </div>
       </div>
 
+      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -595,6 +604,7 @@ export const PayrollComponent = () => {
         </Card>
       </div>
 
+      {/* Quick Generate Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -674,8 +684,8 @@ export const PayrollComponent = () => {
                     {payroll.status === "approved" && (
                       <Button
                         size="sm"
-                        onClick={() => updatePayrollStatus(payroll.id, "paid")}
-                        disabled={!selectedBankAccount}
+                        onClick={() => handleMarkAsPaid(payroll)}
+                        disabled={loading}
                       >
                         Mark Paid
                       </Button>
@@ -688,90 +698,30 @@ export const PayrollComponent = () => {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Payroll Records</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Employee</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Period</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Hours</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Rate</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Gross</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Net</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payrolls.map((payroll) => (
-                  <tr key={payroll.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="font-medium text-gray-900">{payroll.profiles?.full_name || 'Unknown'}</div>
-                      <div className="text-sm text-gray-600">{payroll.profiles?.role || 'N/A'}</div>
-                    </td>
-                    <td className="py-3 px-4 text-gray-600">
-                      {new Date(payroll.pay_period_start).toLocaleDateString()} - {new Date(payroll.pay_period_end).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-4 text-gray-600">{payroll.total_hours}h</td>
-                    <td className="py-3 px-4 text-gray-600">${payroll.hourly_rate}/hr</td>
-                    <td className="py-3 px-4 text-gray-600">${payroll.gross_pay.toLocaleString()}</td>
-                    <td className="py-3 px-4 text-gray-600">${payroll.net_pay.toLocaleString()}</td>
-                    <td className="py-3 px-4">
-                      <Badge variant={
-                        payroll.status === "paid" ? "default" : 
-                        payroll.status === "approved" ? "secondary" : "outline"
-                      }>
-                        {payroll.status}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewPayroll(payroll)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          Details
-                        </Button>
-                        {payroll.status === "pending" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updatePayrollStatus(payroll.id, "approved")}
-                          >
-                            Approve
-                          </Button>
-                        )}
-                        {payroll.status === "approved" && (
-                          <Button
-                            size="sm"
-                            onClick={() => updatePayrollStatus(payroll.id, "paid")}
-                            disabled={!selectedBankAccount}
-                          >
-                            Mark Paid
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Enhanced Payroll List with Filters */}
+      <PayrollListWithFilters
+        payrolls={payrolls}
+        onViewPayroll={handleViewPayroll}
+        onMarkAsPaid={handleMarkAsPaid}
+        onApprove={(id) => updatePayrollStatus(id, "approved")}
+        loading={loading}
+      />
 
       {/* Payroll Details Dialog */}
       <PayrollDetailsDialog
         payroll={selectedPayrollForView}
         isOpen={showPayrollDetails}
         onClose={() => setShowPayrollDetails(false)}
+      />
+
+      {/* Bank Selection Dialog */}
+      <BankSelectionDialog
+        isOpen={showBankSelectionDialog}
+        onClose={() => setShowBankSelectionDialog(false)}
+        onConfirm={handleConfirmPayment}
+        payroll={selectedPayrollForPayment}
+        bankAccounts={bankAccounts}
+        loading={loading}
       />
     </div>
   );
