@@ -15,18 +15,6 @@ interface PayrollDetailsDialogProps {
   onClose: () => void;
 }
 
-interface WorkingHourWithRelations extends WorkingHour {
-  clients?: {
-    id: string;
-    name: string;
-    company: string;
-  };
-  projects?: {
-    id: string;
-    name: string;
-  };
-}
-
 export const PayrollDetailsDialog = ({ 
   payroll, 
   isOpen, 
@@ -35,7 +23,7 @@ export const PayrollDetailsDialog = ({
   const [isPrinting, setIsPrinting] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [bankAccount, setBankAccount] = useState<BankAccount | null>(null);
-  const [workingHours, setWorkingHours] = useState<WorkingHourWithRelations[]>([]);
+  const [workingHours, setWorkingHours] = useState<WorkingHour[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -370,7 +358,7 @@ This is an automatically generated payslip.
             </Card>
           )}
 
-          {/* Working Hours Breakdown */}
+          {/* Working Hours Breakdown - Enhanced for better printing */}
           {workingHours.length > 0 && (
             <Card className="print:shadow-none print:border">
               <CardHeader className="print:pb-2">
