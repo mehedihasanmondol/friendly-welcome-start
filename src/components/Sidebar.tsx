@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
@@ -26,6 +27,22 @@ interface SidebarProps {
 
 export const Sidebar = ({ activeTab, onTabChange, hasPermission, onCollapsedChange }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Check if device is mobile/tablet and set initial collapsed state
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobile = window.innerWidth < 768; // 768px is md breakpoint
+      setIsCollapsed(isMobile);
+      onCollapsedChange?.(isMobile);
+    };
+
+    // Check on initial load
+    checkMobile();
+
+    // Add resize listener
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [onCollapsedChange]);
 
   const toggleCollapsed = () => {
     const newCollapsed = !isCollapsed;

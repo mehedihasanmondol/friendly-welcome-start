@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Dashboard } from "@/components/Dashboard";
 import { PersonalDashboard } from "@/components/PersonalDashboard";
@@ -70,10 +69,10 @@ const Index = () => {
       <div className={`flex-1 overflow-auto transition-all duration-300 ${
         sidebarCollapsed ? 'ml-16' : 'ml-64'
       }`}>
-        <div className="flex justify-end p-4">
+        <div className="flex justify-end p-2 md:p-4">
           <UserMenu />
         </div>
-        <div className="p-6">
+        <div className="p-2 md:p-6">
           <RoleDashboardRouter activeTab={activeTab} setActiveTab={setActiveTab} />
           {renderContent()}
         </div>
