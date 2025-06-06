@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,7 +19,14 @@ export const NotificationDateFilter = ({
   onEndDateChange,
   onClear
 }: NotificationDateFilterProps) => {
-  const [dateShortcut, setDateShortcut] = useState("");
+  const [dateShortcut, setDateShortcut] = useState("current-week");
+
+  useEffect(() => {
+    // Set current week as default when component mounts
+    if (!startDate && !endDate) {
+      handleDateShortcut("current-week");
+    }
+  }, []);
 
   const handleDateShortcut = (shortcut: string) => {
     setDateShortcut(shortcut);
