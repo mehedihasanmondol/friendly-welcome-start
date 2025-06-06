@@ -1,7 +1,5 @@
-
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   LayoutDashboard, 
   Users, 
@@ -148,51 +146,49 @@ export const Sidebar = ({ activeTab, onTabChange, hasPermission, onCollapsedChan
 
   return (
     <div className={cn(
-      "fixed left-0 top-0 h-full bg-white border-r border-gray-200 transition-all duration-300 z-50 flex flex-col",
+      "fixed left-0 top-0 h-full bg-white border-r border-gray-200 transition-all duration-300 z-50",
       isCollapsed ? "w-16" : "w-64"
     )}>
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200">
         {!isCollapsed && (
-          <h2 className="text-lg md:text-xl font-bold text-gray-900 truncate">
+          <h2 className="text-lg md:text-xl font-bold text-gray-900">
             Schedule & Payroll
           </h2>
         )}
         <button
           onClick={toggleCollapsed}
-          className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0"
+          className="p-2 rounded-md hover:bg-gray-100"
         >
           <Menu className="h-5 w-5" />
         </button>
       </div>
       
-      <ScrollArea className="flex-1 px-2">
-        <nav className="mt-8 pb-8">
-          <ul className="space-y-2">
-            {visibleMenuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              
-              return (
-                <li key={item.id}>
-                  <button
-                    onClick={() => handleTabChange(item.id)}
-                    className={cn(
-                      "w-full flex items-center px-3 py-2 text-left rounded-lg transition-colors text-sm md:text-base",
-                      isActive
-                        ? "bg-blue-100 text-blue-900 font-medium"
-                        : "text-gray-700 hover:bg-gray-100"
-                    )}
-                    title={isCollapsed ? item.label : undefined}
-                  >
-                    <Icon className={cn("h-5 w-5 flex-shrink-0", isCollapsed ? "mx-auto" : "mr-3")} />
-                    {!isCollapsed && <span className="truncate">{item.label}</span>}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-      </ScrollArea>
+      <nav className="mt-8">
+        <ul className="space-y-2 px-2">
+          {visibleMenuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            
+            return (
+              <li key={item.id}>
+                <button
+                  onClick={() => handleTabChange(item.id)}
+                  className={cn(
+                    "w-full flex items-center px-3 py-2 text-left rounded-lg transition-colors text-sm md:text-base",
+                    isActive
+                      ? "bg-blue-100 text-blue-900 font-medium"
+                      : "text-gray-700 hover:bg-gray-100"
+                  )}
+                  title={isCollapsed ? item.label : undefined}
+                >
+                  <Icon className={cn("h-5 w-5", isCollapsed ? "mx-auto" : "mr-3")} />
+                  {!isCollapsed && <span className="truncate">{item.label}</span>}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
     </div>
   );
 };
