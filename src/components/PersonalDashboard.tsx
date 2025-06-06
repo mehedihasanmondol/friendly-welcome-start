@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -291,43 +290,49 @@ export const PersonalDashboard = () => {
   ];
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+    <div className="space-y-4 md:space-y-6 p-2 md:p-0">
+      <div className="flex flex-col space-y-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">My Dashboard</h1>
-          <p className="text-gray-600">Welcome back, {profile?.full_name || 'User'}!</p>
+          <p className="text-sm md:text-base text-gray-600">Welcome back, {profile?.full_name || 'User'}!</p>
         </div>
         
-        {/* Date Range Selector */}
-        <div className="flex flex-col space-y-2 md:flex-row md:items-center md:gap-4 md:space-y-0">
-          <Select value={dateShortcut} onValueChange={handleDateShortcut}>
-            <SelectTrigger className="w-full md:w-40">
-              <SelectValue placeholder="Date shortcut" />
-            </SelectTrigger>
-            <SelectContent>
-              {generateShortcutOptions().map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Mobile-First Date Range Selector */}
+        <div className="space-y-3">
+          <div className="w-full">
+            <Select value={dateShortcut} onValueChange={handleDateShortcut}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Date shortcut" />
+              </SelectTrigger>
+              <SelectContent>
+                {generateShortcutOptions().map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           
-          <div className="flex flex-col space-y-2 md:flex-row md:items-center md:gap-2 md:space-y-0">
-            <CalendarRange className="h-4 w-4 text-gray-500 hidden md:block" />
+          <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:gap-2 sm:space-y-0">
+            <div className="flex items-center gap-2 sm:hidden">
+              <CalendarRange className="h-4 w-4 text-gray-500" />
+              <span className="text-sm text-gray-600 font-medium">Custom Range:</span>
+            </div>
+            <CalendarRange className="h-4 w-4 text-gray-500 hidden sm:block" />
             <Input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full md:w-40"
+              className="w-full sm:w-auto sm:flex-1"
               placeholder="Start Date"
             />
-            <span className="text-gray-500 text-center md:text-left">to</span>
+            <span className="text-gray-500 text-center sm:text-left text-sm">to</span>
             <Input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full md:w-40"
+              className="w-full sm:w-auto sm:flex-1"
               placeholder="End Date"
             />
           </div>
