@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { hasPermission } = useAuth();
 
   const renderContent = () => {
@@ -60,8 +61,15 @@ const Index = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} hasPermission={hasPermission} />
-      <div className="flex-1 ml-64 overflow-auto">
+      <Sidebar 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab} 
+        hasPermission={hasPermission}
+        onCollapsedChange={setSidebarCollapsed}
+      />
+      <div className={`flex-1 overflow-auto transition-all duration-300 ${
+        sidebarCollapsed ? 'ml-16' : 'ml-64'
+      }`}>
         <div className="flex justify-end p-4">
           <UserMenu />
         </div>

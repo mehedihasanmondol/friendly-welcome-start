@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { 
@@ -22,10 +21,17 @@ interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   hasPermission: (permission: string) => boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
-export const Sidebar = ({ activeTab, onTabChange, hasPermission }: SidebarProps) => {
+export const Sidebar = ({ activeTab, onTabChange, hasPermission, onCollapsedChange }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const toggleCollapsed = () => {
+    const newCollapsed = !isCollapsed;
+    setIsCollapsed(newCollapsed);
+    onCollapsedChange?.(newCollapsed);
+  };
 
   const menuItems = [
     { 
@@ -125,7 +131,7 @@ export const Sidebar = ({ activeTab, onTabChange, hasPermission }: SidebarProps)
           </h2>
         )}
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={toggleCollapsed}
           className="p-2 rounded-md hover:bg-gray-100"
         >
           <Menu className="h-5 w-5" />
