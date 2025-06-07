@@ -201,53 +201,60 @@ export const PayrollListWithFilters = ({
           <CardTitle>Payroll Records</CardTitle>
         </div>
         
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-4 mt-4">
-          <Select value={dateShortcut} onValueChange={handleDateShortcut}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Date shortcut" />
-            </SelectTrigger>
-            <SelectContent>
-              {generateShortcutOptions().map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-gray-500" />
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-40"
-              placeholder="Start Date"
-            />
-            <span className="text-gray-500">to</span>
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-40"
-              placeholder="End Date"
-            />
+        {/* Mobile-friendly filters */}
+        <div className="space-y-4 mt-4">
+          {/* Date filters row */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <Select value={dateShortcut} onValueChange={handleDateShortcut}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Date shortcut" />
+              </SelectTrigger>
+              <SelectContent>
+                {generateShortcutOptions().map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <div className="flex items-center gap-2 flex-1">
+              <Calendar className="h-4 w-4 text-gray-500 shrink-0" />
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="flex-1 sm:w-32"
+                placeholder="Start Date"
+              />
+              <span className="text-gray-500 text-sm shrink-0">to</span>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="flex-1 sm:w-32"
+                placeholder="End Date"
+              />
+            </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-gray-500" />
-            <Input
-              placeholder="Search employees..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-64"
-            />
+          {/* Search and filters row */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 flex-1">
+              <Search className="h-4 w-4 text-gray-500 shrink-0" />
+              <Input
+                placeholder="Search employees..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1"
+              />
+            </div>
             
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-10 w-10 p-0">
-                  <Filter className="h-4 w-4" />
+                <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <span>Filters</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-80" align="end">
@@ -334,49 +341,139 @@ export const PayrollListWithFilters = ({
             <div className="text-gray-500">Loading payroll records...</div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Employee</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Pay Period</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Hours</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Gross Pay</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Net Pay</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPayrolls.map((payroll) => (
-                  <tr key={payroll.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div>
-                        <div className="font-medium">{payroll.profiles?.full_name || 'N/A'}</div>
-                        <div className="text-sm text-gray-600">{payroll.profiles?.role || 'N/A'}</div>
+          <>
+            {/* Desktop table view */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Employee</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Pay Period</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Hours</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Gross Pay</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Net Pay</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPayrolls.map((payroll) => (
+                    <tr key={payroll.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-4">
+                        <div>
+                          <div className="font-medium">{payroll.profiles?.full_name || 'N/A'}</div>
+                          <div className="text-sm text-gray-600">{payroll.profiles?.role || 'N/A'}</div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        {new Date(payroll.pay_period_start).toLocaleDateString()} - {new Date(payroll.pay_period_end).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-4">{payroll.total_hours}</td>
+                      <td className="py-3 px-4">${payroll.gross_pay.toFixed(2)}</td>
+                      <td className="py-3 px-4 font-medium text-green-600">${payroll.net_pay.toFixed(2)}</td>
+                      <td className="py-3 px-4">
+                        <Badge variant={
+                          payroll.status === 'paid' ? 'default' :
+                          payroll.status === 'approved' ? 'secondary' : 'outline'
+                        }>
+                          {payroll.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex gap-2 items-center">
+                          {payroll.status === 'pending' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onApprove(payroll.id)}
+                            >
+                              Approve
+                            </Button>
+                          )}
+                          {payroll.status === 'approved' && (
+                            <Button
+                              size="sm"
+                              onClick={() => onMarkAsPaid(payroll)}
+                            >
+                              Mark as Paid
+                            </Button>
+                          )}
+                          <PayrollActions
+                            payroll={payroll}
+                            onEdit={handleEditPayroll}
+                            onDelete={handleDeletePayroll}
+                            onView={onViewPayroll}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredPayrolls.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="text-center py-8 text-gray-500">
+                        No payroll records found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile card view */}
+            <div className="lg:hidden grid grid-cols-1 gap-4">
+              {filteredPayrolls.map((payroll) => (
+                <Card key={payroll.id} className="border-l-4 border-l-green-500">
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      {/* Header with employee info and status */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-base text-gray-900 truncate">
+                            {payroll.profiles?.full_name || 'N/A'}
+                          </h4>
+                          <p className="text-sm text-gray-600 truncate">
+                            {payroll.profiles?.role || 'N/A'}
+                          </p>
+                        </div>
+                        <div className="shrink-0">
+                          <Badge variant={
+                            payroll.status === 'paid' ? 'default' :
+                            payroll.status === 'approved' ? 'secondary' : 'outline'
+                          }>
+                            {payroll.status}
+                          </Badge>
+                        </div>
                       </div>
-                    </td>
-                    <td className="py-3 px-4 text-sm">
-                      {new Date(payroll.pay_period_start).toLocaleDateString()} - {new Date(payroll.pay_period_end).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-4">{payroll.total_hours}</td>
-                    <td className="py-3 px-4">${payroll.gross_pay.toFixed(2)}</td>
-                    <td className="py-3 px-4 font-medium text-green-600">${payroll.net_pay.toFixed(2)}</td>
-                    <td className="py-3 px-4">
-                      <Badge variant={
-                        payroll.status === 'paid' ? 'default' :
-                        payroll.status === 'approved' ? 'secondary' : 'outline'
-                      }>
-                        {payroll.status}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex gap-2 items-center">
+
+                      {/* Pay period */}
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Period:</span> {new Date(payroll.pay_period_start).toLocaleDateString()} - {new Date(payroll.pay_period_end).toLocaleDateString()}
+                      </div>
+
+                      {/* Financial details grid */}
+                      <div className="grid grid-cols-3 gap-3 pt-2 border-t border-gray-100">
+                        <div className="text-center p-2 bg-blue-50 rounded">
+                          <div className="text-xs text-blue-600 font-medium">Hours</div>
+                          <div className="font-semibold text-blue-700">{payroll.total_hours}</div>
+                        </div>
+                        <div className="text-center p-2 bg-purple-50 rounded">
+                          <div className="text-xs text-purple-600 font-medium">Gross</div>
+                          <div className="font-semibold text-purple-700">${payroll.gross_pay.toFixed(2)}</div>
+                        </div>
+                        <div className="text-center p-2 bg-green-50 rounded">
+                          <div className="text-xs text-green-600 font-medium">Net Pay</div>
+                          <div className="font-semibold text-green-700">${payroll.net_pay.toFixed(2)}</div>
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
                         {payroll.status === 'pending' && (
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => onApprove(payroll.id)}
+                            className="flex-1"
                           >
                             Approve
                           </Button>
@@ -385,6 +482,7 @@ export const PayrollListWithFilters = ({
                           <Button
                             size="sm"
                             onClick={() => onMarkAsPaid(payroll)}
+                            className="flex-1"
                           >
                             Mark as Paid
                           </Button>
@@ -396,19 +494,19 @@ export const PayrollListWithFilters = ({
                           onView={onViewPayroll}
                         />
                       </div>
-                    </td>
-                  </tr>
-                ))}
-                {filteredPayrolls.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="text-center py-8 text-gray-500">
-                      No payroll records found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              
+              {filteredPayrolls.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-lg font-medium mb-2">No payroll records found</div>
+                  <p className="text-sm">Try adjusting your filters or date range</p>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
