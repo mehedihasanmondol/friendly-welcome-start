@@ -295,8 +295,8 @@ export const PayrollGenerationWizard = ({ profiles, workingHours, onRefresh }: P
   const totalGrossPay = payrollPreview.reduce((sum, p) => sum + p.grossPay, 0);
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-2 sm:p-4">
-      <Card>
+    <div className="space-y-4 p-2 sm:p-4 max-h-screen flex flex-col">
+      <Card className="flex-shrink-0">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <Calculator className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -304,194 +304,145 @@ export const PayrollGenerationWizard = ({ profiles, workingHours, onRefresh }: P
             <span className="sm:hidden">Payroll - Step {step}/2</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 sm:space-y-6">
-          {step === 1 && (
-            <div className="space-y-4 sm:space-y-6">
-              <div>
-                <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
-                  <span className="hidden sm:inline">Step 1: Select Profiles & Configure Pay Period</span>
-                  <span className="sm:hidden">Select Profiles & Period</span>
-                </h3>
-                
-                <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6">
-                  <div className="lg:col-span-2">
-                    <div className="mb-3 sm:mb-4">
-                      <div className="flex items-center gap-2 text-xs sm:text-sm text-blue-600 mb-2">
-                        <Calculator className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-                        <span className="hidden sm:inline">Showing employees with approved working hours for selected period</span>
-                        <span className="sm:hidden">Approved hours only</span>
-                        {filterLoading && <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 animate-spin shrink-0" />}
-                      </div>
-                    </div>
-                    <EnhancedProfileSelector
-                      profiles={filteredProfiles}
-                      workingHours={filteredWorkingHours}
-                      selectedProfileIds={selectedProfileIds}
-                      onProfileSelect={setSelectedProfileIds}
-                      mode="multiple"
-                      label="Select Team Members for Payroll"
-                      showStats={true}
-                    />
-                  </div>
-                  
-                  <div className="space-y-3 sm:space-y-4">
-                    <div className="bg-gray-50 p-3 sm:p-4 rounded-lg space-y-3 sm:space-y-4">
-                      <h4 className="font-medium text-gray-700 text-sm sm:text-base">Pay Period Settings</h4>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <Label className="text-xs sm:text-sm">Pay Period Start</Label>
-                          <Input
-                            type="date"
-                            value={dateRange.start}
-                            onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                            className="text-sm"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label className="text-xs sm:text-sm">Pay Period End</Label>
-                          <Input
-                            type="date"
-                            value={dateRange.end}
-                            onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                            className="text-sm"
-                          />
-                        </div>
-                      </div>
-                    </div>
+      </Card>
 
-                    <Button 
-                      onClick={reloadFilteredData} 
-                      variant="outline" 
-                      className="w-full text-xs sm:text-sm"
-                      disabled={filterLoading}
-                      size="sm"
-                    >
-                      {filterLoading ? (
-                        <>
-                          <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
-                          <span className="hidden sm:inline">Refreshing...</span>
-                          <span className="sm:hidden">Loading...</span>
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                          <span className="hidden sm:inline">Refresh Data</span>
-                          <span className="sm:hidden">Refresh</span>
-                        </>
-                      )}
-                    </Button>
+      <div className="flex-1 overflow-y-auto space-y-4">
+        {step === 1 && (
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <h3 className="text-base sm:text-lg font-semibold">
+                <span className="hidden sm:inline">Step 1: Select Profiles & Configure Pay Period</span>
+                <span className="sm:hidden">Select Profiles & Period</span>
+              </h3>
+              
+              <div className="space-y-4">
+                {/* Period Configuration - Mobile First */}
+                <div className="bg-gray-50 p-3 rounded-lg space-y-3">
+                  <h4 className="font-medium text-gray-700 text-sm">Pay Period Settings</h4>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs sm:text-sm">Pay Period Start</Label>
+                      <Input
+                        type="date"
+                        value={dateRange.start}
+                        onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                        className="text-sm"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label className="text-xs sm:text-sm">Pay Period End</Label>
+                      <Input
+                        type="date"
+                        value={dateRange.end}
+                        onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                        className="text-sm"
+                      />
+                    </div>
                   </div>
+
+                  <Button 
+                    onClick={reloadFilteredData} 
+                    variant="outline" 
+                    className="w-full text-xs sm:text-sm"
+                    disabled={filterLoading}
+                    size="sm"
+                  >
+                    {filterLoading ? (
+                      <>
+                        <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2 animate-spin" />
+                        Refreshing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                        Refresh Data
+                      </>
+                    )}
+                  </Button>
                 </div>
 
-                {/* Mobile-friendly stats grid */}
-                <div className="mt-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm">
-                    <div className="text-center sm:text-left">
+                {/* Info Banner */}
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-blue-600 bg-blue-50 p-3 rounded-lg">
+                  <Calculator className="h-4 w-4 shrink-0" />
+                  <span>Showing employees with approved working hours for selected period</span>
+                  {filterLoading && <RefreshCw className="h-4 w-4 animate-spin shrink-0" />}
+                </div>
+
+                {/* Profile Selector */}
+                <EnhancedProfileSelector
+                  profiles={filteredProfiles}
+                  workingHours={filteredWorkingHours}
+                  selectedProfileIds={selectedProfileIds}
+                  onProfileSelect={setSelectedProfileIds}
+                  mode="multiple"
+                  label="Select Team Members for Payroll"
+                  showStats={true}
+                />
+
+                {/* Summary Statistics - Always Visible on Mobile */}
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <h4 className="font-medium text-gray-700 text-sm mb-3">Summary</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs sm:text-sm">
+                    <div className="text-center">
                       <div className="text-gray-600 mb-1">Eligible</div>
                       <div className="font-bold text-blue-600">{filteredProfiles.length}</div>
                     </div>
-                    <div className="text-center sm:text-left">
+                    <div className="text-center">
                       <div className="text-gray-600 mb-1">Hours</div>
                       <div className="font-bold text-green-600">
                         {filteredWorkingHours.reduce((sum, wh) => sum + wh.total_hours, 0).toFixed(1)}
                       </div>
                     </div>
-                    <div className="text-center sm:text-left col-span-2 sm:col-span-1">
-                      <div className="text-gray-600 mb-1">Period</div>
-                      <div className="font-bold text-xs">{dateRange.start} to {dateRange.end}</div>
+                    <div className="text-center col-span-2 sm:col-span-1">
+                      <div className="text-gray-600 mb-1">Selected</div>
+                      <div className="font-bold text-purple-600">{selectedProfileIds.length}</div>
                     </div>
-                    <div className="text-center sm:text-left col-span-2 sm:col-span-1">
-                      <div className="text-gray-600 mb-1">Status</div>
-                      <div className="font-bold text-green-600">Approved</div>
+                    <div className="text-center col-span-2 sm:col-span-1">
+                      <div className="text-gray-600 mb-1">Preview</div>
+                      <div className="font-bold text-orange-600">{payrollPreview.length}</div>
                     </div>
                   </div>
                 </div>
 
                 {overlappingPayrolls.length > 0 && (
-                  <div className="mt-4 p-3 sm:p-4 border border-orange-200 bg-orange-50 rounded-lg">
+                  <div className="p-3 border border-orange-200 bg-orange-50 rounded-lg">
                     <div className="flex items-center gap-2 text-orange-800 mb-2">
                       <AlertTriangle className="h-4 w-4 shrink-0" />
-                      <span className="font-medium text-sm sm:text-base">Overlapping Payroll Detected</span>
+                      <span className="font-medium text-sm">Overlapping Payroll Detected</span>
                     </div>
-                    <p className="text-xs sm:text-sm text-orange-700 mb-2">
+                    <p className="text-xs text-orange-700 mb-2">
                       Employees with overlapping periods:
                     </p>
-                    <ul className="text-xs sm:text-sm text-orange-700 mb-2 space-y-1">
+                    <ul className="text-xs text-orange-700 mb-2 space-y-1">
                       {overlappingPayrolls.map(profileId => {
                         const profile = filteredProfiles.find(p => p.id === profileId);
                         return <li key={profileId}>• {profile?.full_name}</li>;
                       })}
                     </ul>
-                    <p className="text-xs sm:text-sm text-orange-700 font-medium">
+                    <p className="text-xs text-orange-700 font-medium">
                       You can proceed but this may create duplicates.
                     </p>
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        )}
 
-              <div className="flex justify-end pt-4 border-t">
-                <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      onClick={handleNextStep}
-                      disabled={selectedProfileIds.length === 0 || !dateRange.start || !dateRange.end || payrollPreview.length === 0}
-                      className="w-full sm:w-auto text-sm"
-                      size="sm"
-                    >
-                      <span className="hidden sm:inline">Next: Review Payroll ({payrollPreview.length} employees)</span>
-                      <span className="sm:hidden">Review ({payrollPreview.length})</span>
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle className="flex items-center gap-2">
-                        <AlertTriangle className="h-5 w-5 text-orange-500" />
-                        Existing Payroll Records Found
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Some selected employees already have payroll records for overlapping periods:
-                        <ul className="mt-2 space-y-1">
-                          {overlappingPayrolls.map(profileId => {
-                            const profile = filteredProfiles.find(p => p.id === profileId);
-                            return (
-                              <li key={profileId} className="text-sm font-medium">
-                                • {profile?.full_name}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                        <p className="mt-3 font-medium">
-                          Do you want to proceed? This may create duplicate payroll records for the overlapping periods.
-                        </p>
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={confirmProceedWithOverlaps}>
-                        Proceed Anyway
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-          )}
+        {step === 2 && (
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <h3 className="text-base sm:text-lg font-semibold">
+                <span className="hidden sm:inline">Step 2: Review Payroll Calculations</span>
+                <span className="sm:hidden">Review Calculations</span>
+              </h3>
 
-          {step === 2 && (
-            <div className="space-y-4 sm:space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base sm:text-lg font-semibold">
-                  <span className="hidden sm:inline">Step 2: Review Payroll Calculations</span>
-                  <span className="sm:hidden">Review Calculations</span>
-                </h3>
-              </div>
-
-              {/* Mobile-friendly Summary Statistics */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              {/* Summary Statistics */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <Card>
-                  <CardContent className="pt-4 sm:pt-6">
+                  <CardContent className="pt-4">
                     <div className="text-center">
                       <div className="text-lg sm:text-2xl font-bold text-blue-600">{totalEmployees}</div>
                       <div className="text-xs sm:text-sm text-gray-600">Employees</div>
@@ -499,7 +450,7 @@ export const PayrollGenerationWizard = ({ profiles, workingHours, onRefresh }: P
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardContent className="pt-4 sm:pt-6">
+                  <CardContent className="pt-4">
                     <div className="text-center">
                       <div className="text-lg sm:text-2xl font-bold text-purple-600">{totalHoursSum.toFixed(1)}</div>
                       <div className="text-xs sm:text-sm text-gray-600">Hours</div>
@@ -507,7 +458,7 @@ export const PayrollGenerationWizard = ({ profiles, workingHours, onRefresh }: P
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardContent className="pt-4 sm:pt-6">
+                  <CardContent className="pt-4">
                     <div className="text-center">
                       <div className="text-lg sm:text-2xl font-bold text-orange-600">${totalGrossPay.toFixed(2)}</div>
                       <div className="text-xs sm:text-sm text-gray-600">Gross</div>
@@ -515,7 +466,7 @@ export const PayrollGenerationWizard = ({ profiles, workingHours, onRefresh }: P
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardContent className="pt-4 sm:pt-6">
+                  <CardContent className="pt-4">
                     <div className="text-center">
                       <div className="text-lg sm:text-2xl font-bold text-green-600">${totalPreviewAmount.toFixed(2)}</div>
                       <div className="text-xs sm:text-sm text-gray-600">Net</div>
@@ -531,7 +482,7 @@ export const PayrollGenerationWizard = ({ profiles, workingHours, onRefresh }: P
               ) : (
                 <>
                   {/* Desktop table view */}
-                  <div className="hidden lg:block max-h-96 overflow-y-auto border rounded-lg">
+                  <div className="hidden lg:block overflow-y-auto border rounded-lg max-h-64">
                     <table className="w-full">
                       <thead className="sticky top-0 bg-gray-50 border-b">
                         <tr>
@@ -572,17 +523,17 @@ export const PayrollGenerationWizard = ({ profiles, workingHours, onRefresh }: P
                   </div>
 
                   {/* Mobile card view */}
-                  <div className="lg:hidden space-y-3 max-h-96 overflow-y-auto">
+                  <div className="lg:hidden space-y-3 max-h-64 overflow-y-auto">
                     {payrollPreview.map((preview) => (
                       <Card key={preview.profile.id} className="border-l-4 border-l-green-500">
-                        <CardContent className="p-3 sm:p-4">
+                        <CardContent className="p-3">
                           <div className="space-y-3">
                             {/* Header */}
                             <div>
-                              <h4 className="font-semibold text-sm sm:text-base text-gray-900">
+                              <h4 className="font-semibold text-sm text-gray-900">
                                 {preview.profile.full_name}
                               </h4>
-                              <p className="text-xs sm:text-sm text-gray-600">{preview.profile.role}</p>
+                              <p className="text-xs text-gray-600">{preview.profile.role}</p>
                             </div>
 
                             {/* Hours breakdown */}
@@ -636,15 +587,15 @@ export const PayrollGenerationWizard = ({ profiles, workingHours, onRefresh }: P
                         {isWorkingHoursOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </Button>
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-3 sm:space-y-4 mt-4">
+                    <CollapsibleContent className="space-y-3 mt-4">
                       {payrollPreview.map((preview) => (
                         <Card key={preview.profile.id}>
-                          <CardHeader className="pb-2 sm:pb-3">
-                            <CardTitle className="text-sm sm:text-base">{preview.profile.full_name}</CardTitle>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">{preview.profile.full_name}</CardTitle>
                           </CardHeader>
                           <CardContent>
                             <div className="overflow-x-auto">
-                              <table className="w-full text-xs sm:text-sm">
+                              <table className="w-full text-xs">
                                 <thead>
                                   <tr className="border-b">
                                     <th className="text-left py-2">Date</th>
@@ -676,27 +627,82 @@ export const PayrollGenerationWizard = ({ profiles, workingHours, onRefresh }: P
                   </Collapsible>
                 </>
               )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
-              <div className="flex flex-col sm:flex-row justify-between gap-3 pt-4 border-t">
-                <Button variant="outline" onClick={() => setStep(1)} className="text-sm" size="sm">
-                  <span className="hidden sm:inline">Back: Edit Selection</span>
-                  <span className="sm:hidden">Back</span>
-                </Button>
-                <Button 
-                  onClick={generatePayroll}
-                  disabled={loading || payrollPreview.length === 0}
-                  className="bg-green-600 hover:bg-green-700 text-sm"
-                  size="sm"
-                >
-                  <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  {loading ? "Generating..." : (
-                    <>
-                      <span className="hidden sm:inline">Generate Payroll Records</span>
-                      <span className="sm:hidden">Generate ({payrollPreview.length})</span>
-                    </>
-                  )}
-                </Button>
-              </div>
+      {/* Fixed Action Buttons at Bottom */}
+      <Card className="flex-shrink-0">
+        <CardContent className="p-4">
+          {step === 1 && (
+            <div className="flex justify-end">
+              <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    onClick={handleNextStep}
+                    disabled={selectedProfileIds.length === 0 || !dateRange.start || !dateRange.end || payrollPreview.length === 0}
+                    className="w-full sm:w-auto text-sm"
+                    size="sm"
+                  >
+                    <span className="hidden sm:inline">Next: Review Payroll ({payrollPreview.length} employees)</span>
+                    <span className="sm:hidden">Review ({payrollPreview.length})</span>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-orange-500" />
+                      Existing Payroll Records Found
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Some selected employees already have payroll records for overlapping periods:
+                      <ul className="mt-2 space-y-1">
+                        {overlappingPayrolls.map(profileId => {
+                          const profile = filteredProfiles.find(p => p.id === profileId);
+                          return (
+                            <li key={profileId} className="text-sm font-medium">
+                              • {profile?.full_name}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      <p className="mt-3 font-medium">
+                        Do you want to proceed? This may create duplicate payroll records for the overlapping periods.
+                      </p>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmProceedWithOverlaps}>
+                      Proceed Anyway
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="flex flex-col sm:flex-row justify-between gap-3">
+              <Button variant="outline" onClick={() => setStep(1)} className="text-sm" size="sm">
+                <span className="hidden sm:inline">Back: Edit Selection</span>
+                <span className="sm:hidden">Back</span>
+              </Button>
+              <Button 
+                onClick={generatePayroll}
+                disabled={loading || payrollPreview.length === 0}
+                className="bg-green-600 hover:bg-green-700 text-sm"
+                size="sm"
+              >
+                <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                {loading ? "Generating..." : (
+                  <>
+                    <span className="hidden sm:inline">Generate Payroll Records</span>
+                    <span className="sm:hidden">Generate ({payrollPreview.length})</span>
+                  </>
+                )}
+              </Button>
             </div>
           )}
         </CardContent>
