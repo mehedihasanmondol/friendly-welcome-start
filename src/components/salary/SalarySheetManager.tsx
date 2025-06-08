@@ -610,13 +610,88 @@ export const SalarySheetManager = ({ payrolls: initialPayrolls, profiles, onRefr
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Mobile-friendly Date and Status Filters */}
-          <div className="space-y-4 mb-6">
+          {/* Desktop filters - side by side layout */}
+          <div className="hidden lg:flex flex-wrap items-center gap-4 mb-6">
+            <Select value={dateShortcut} onValueChange={handleDateShortcut}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Period" />
+              </SelectTrigger>
+              <SelectContent>
+                {generateShortcutOptions().map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-gray-500" />
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-40"
+                placeholder="Start Date"
+              />
+              <span className="text-gray-500">to</span>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-40"
+                placeholder="End Date"
+              />
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-gray-500" />
+              <Input
+                placeholder="Search employees..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-64"
+              />
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-10 w-10 p-0">
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align="end">
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm">Filters</h4>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1 block">Status</label>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="All Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Status</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="paid">Paid</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          {/* Mobile-optimized filters */}
+          <div className="lg:hidden space-y-3 sm:space-y-4 mb-6">
             {/* Date filters row */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:gap-4">
               <Select value={dateShortcut} onValueChange={handleDateShortcut}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue placeholder="Date shortcut" />
+                <SelectTrigger className="w-full sm:w-36">
+                  <SelectValue placeholder="Period" />
                 </SelectTrigger>
                 <SelectContent>
                   {generateShortcutOptions().map((option) => (
@@ -633,35 +708,35 @@ export const SalarySheetManager = ({ payrolls: initialPayrolls, profiles, onRefr
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="flex-1 sm:w-32"
-                  placeholder="Start Date"
+                  className="flex-1 text-sm"
+                  placeholder="Start"
                 />
-                <span className="text-gray-500 text-sm shrink-0">to</span>
+                <span className="text-gray-500 text-xs shrink-0">to</span>
                 <Input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="flex-1 sm:w-32"
-                  placeholder="End Date"
+                  className="flex-1 text-sm"
+                  placeholder="End"
                 />
               </div>
             </div>
             
             {/* Search and filters row */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:gap-4">
               <div className="flex items-center gap-2 flex-1">
                 <Search className="h-4 w-4 text-gray-500 shrink-0" />
                 <Input
                   placeholder="Search employees..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 text-sm"
                 />
               </div>
               
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto text-sm">
                     <Filter className="h-4 w-4 mr-2" />
                     <span>Filters</span>
                   </Button>
