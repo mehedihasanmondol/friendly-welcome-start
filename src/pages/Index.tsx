@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -147,35 +146,49 @@ const Index = () => {
       <div className={`flex-1 overflow-auto transition-all duration-300 ${
         sidebarCollapsed ? 'md:ml-16' : 'md:ml-64'
       }`}>
-        {/* Header */}
-        <div className="flex justify-between items-center p-2 md:p-4 bg-white border-b border-gray-200">
-          {/* Left side - Mobile Navigation + App Name */}
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-40 flex justify-between items-center p-2 md:p-4 bg-white border-b border-gray-200">
+          {/* Left side - Sidebar Toggle + App Name */}
           <div className="flex items-center flex-1">
-            {/* Mobile Navigation */}
-            <div className="md:hidden mr-4">
-              <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Menu className="h-6 w-6" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-64 p-0">
-                  <Sidebar 
-                    activeTab={activeTab} 
-                    onTabChange={(tab) => {
-                      setActiveTab(tab);
-                      setMobileNavOpen(false);
-                    }} 
-                    hasPermission={hasPermission}
-                    onCollapsedChange={() => {}}
-                    isMobile={true}
-                  />
-                </SheetContent>
-              </Sheet>
+            {/* Sidebar Toggle for Desktop & Mobile Navigation */}
+            <div className="mr-4">
+              {/* Desktop Sidebar Toggle */}
+              <div className="hidden md:block">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                >
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </div>
+
+              {/* Mobile Navigation Sheet */}
+              <div className="md:hidden">
+                <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <Menu className="h-6 w-6" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-64 p-0">
+                    <Sidebar 
+                      activeTab={activeTab} 
+                      onTabChange={(tab) => {
+                        setActiveTab(tab);
+                        setMobileNavOpen(false);
+                      }} 
+                      hasPermission={hasPermission}
+                      onCollapsedChange={() => {}}
+                      isMobile={true}
+                    />
+                  </SheetContent>
+                </Sheet>
+              </div>
             </div>
 
-            {/* App Name - Full width available */}
-            <div className="flex-1">
+            {/* App Name - Hidden on mobile */}
+            <div className="hidden md:block flex-1">
               <h1 className="text-xl md:text-2xl font-semibold text-gray-900">
                 Schedule & Payroll
               </h1>
