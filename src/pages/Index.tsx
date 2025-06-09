@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -149,10 +148,10 @@ const Index = () => {
       }`}>
         {/* Sticky Header */}
         <div className="sticky top-0 z-40 flex justify-between items-center p-2 md:p-4 bg-white border-b border-gray-200">
-          {/* Left side - Navigation Toggle + App Name */}
+          {/* Left side - Sidebar Toggle + App Name */}
           <div className="flex items-center flex-1">
-            {/* Navigation Toggle */}
-            <div className="mr-3 md:mr-4">
+            {/* Sidebar Toggle for Desktop & Mobile Navigation */}
+            <div className="mr-4">
               {/* Desktop Sidebar Toggle */}
               <div className="hidden md:block">
                 <Button
@@ -160,7 +159,7 @@ const Index = () => {
                   size="icon"
                   onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                 >
-                  <Menu className="h-5 w-5" />
+                  <Menu className="h-6 w-6" />
                 </Button>
               </div>
 
@@ -169,7 +168,7 @@ const Index = () => {
                 <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="icon">
-                      <Menu className="h-5 w-5" />
+                      <Menu className="h-6 w-6" />
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="left" className="w-64 p-0">
