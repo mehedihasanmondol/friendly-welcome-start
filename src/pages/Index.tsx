@@ -4,7 +4,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Menu, Bell } from "lucide-react";
+import { Menu, Bell, Maximize, Minimize } from "lucide-react";
 import { Dashboard } from "@/components/Dashboard";
 import { PersonalDashboard } from "@/components/PersonalDashboard";
 import { ProfileManagement } from "@/components/ProfileManagement";
@@ -30,6 +30,7 @@ const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const { hasPermission, user } = useAuth();
 
   // Fetch notification count
@@ -73,6 +74,27 @@ const Index = () => {
       subscription.unsubscribe();
     };
   }, [user]);
+
+  // Handle fullscreen toggle
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -127,7 +149,7 @@ const Index = () => {
       }`}>
         {/* Header */}
         <div className="flex justify-between items-center p-2 md:p-4 bg-white border-b border-gray-200">
-          {/* Left side - Mobile Navigation + Full width content area */}
+          {/* Left side - Mobile Navigation + App Name */}
           <div className="flex items-center flex-1">
             {/* Mobile Navigation */}
             <div className="md:hidden mr-4">
@@ -152,16 +174,30 @@ const Index = () => {
               </Sheet>
             </div>
 
-            {/* Page Title Area - Full width available */}
+            {/* App Name - Full width available */}
             <div className="flex-1">
-              <h1 className="text-xl md:text-2xl font-semibold text-gray-900 capitalize">
-                {activeTab.replace('-', ' ')}
+              <h1 className="text-xl md:text-2xl font-semibold text-gray-900">
+                Schedule & Payroll
               </h1>
             </div>
           </div>
 
-          {/* Right side - Notifications + User Menu */}
+          {/* Right side - Fullscreen + Notifications + User Menu */}
           <div className="flex items-center gap-2 md:gap-4">
+            {/* Fullscreen Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleFullscreen}
+              className="relative"
+            >
+              {isFullscreen ? (
+                <Minimize className="h-5 w-5" />
+              ) : (
+                <Maximize className="h-5 w-5" />
+              )}
+            </Button>
+
             {/* Notification Bell */}
             {hasPermission('notifications_view') && (
               <Button
